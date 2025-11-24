@@ -473,11 +473,7 @@ btnMove.addEventListener('click', async () => {
         currentOrder.splice(startIdx, movingChunk.length);
         
         // Calculate new insertion point
-        // If we removed pages BEFORE the insertion point, the insertion index shifts down
         let adjustedInsertIdx = insertIdx;
-        if (startIdx < insertIdx) {
-            adjustedInsertIdx -= movingChunk.length;
-        }
         
         // Insert chunk at new position
         currentOrder.splice(adjustedInsertIdx, 0, ...movingChunk);
