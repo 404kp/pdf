@@ -1088,6 +1088,63 @@ insertBlankBtn.addEventListener('click', async () => {
     }
 });
 
+// ========== QR CODE FUNCTIONALITY ==========
+
+const qrcodeText = document.getElementById('qrcode-text');
+const qrcodeColor = document.getElementById('qrcode-color');
+const qrcodeBg = document.getElementById('qrcode-bg');
+const generateQrcodeBtn = document.getElementById('generate-qrcode-btn');
+const qrcodeDisplay = document.getElementById('qrcode-display');
+const downloadQrcodeBtn = document.getElementById('download-qrcode-btn');
+
+let qrcodeObj = null;
+
+generateQrcodeBtn.addEventListener('click', () => {
+    const text = qrcodeText.value;
+    if (!text) {
+        showStatus('Bitte Text oder URL eingeben!', true);
+        return;
+    }
+
+    qrcodeDisplay.innerHTML = ''; // Clear previous
+    downloadQrcodeBtn.classList.add('hidden');
+    
+    try {
+        // QRCode library creates the img element inside the container
+        qrcodeObj = new QRCode(qrcodeDisplay, {
+            text: text,
+            width: 256,
+            height: 256,
+            colorDark : qrcodeColor.value,
+            colorLight : qrcodeBg.value,
+            correctLevel : QRCode.CorrectLevel.H
+        });
+        
+        // Wait a moment for the image to be generated
+        setTimeout(() => {
+            const img = qrcodeDisplay.querySelector('img');
+            if (img) {
+                downloadQrcodeBtn.classList.remove('hidden');
+                showStatus('QR-Code generiert!');
+            }
+        }, 100);
+        
+    } catch (e) {
+        console.error(e);
+        showStatus('Fehler beim Generieren!', true);
+    }
+});
+
+downloadQrcodeBtn.addEventListener('click', () => {
+    const img = qrcodeDisplay.querySelector('img');
+    if (img) {
+        const link = document.createElement('a');
+        link.download = 'qrcode.png';
+        link.href = img.src;
+        link.click();
+    }
+});
+
 // ========== UTILITY FUNCTIONS ==========
 
 function updateLastGeneratedPdf(pdfBytes, filename) {

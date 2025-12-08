@@ -27,6 +27,9 @@
             <button class="tab-button" data-tab="misc">
                 <span class="icon">🛠️</span> Sonstiges
             </button>
+            <button class="tab-button" data-tab="qrcode">
+                <span class="icon">📱</span> QR-Code
+            </button>
         </div>
 
         <!-- Merge Tab -->
@@ -242,6 +245,37 @@
             </div>
         </div>
 
+        <!-- QR Code Tab -->
+        <div id="qrcode-tab" class="tab-content">
+            <div class="qrcode-container">
+                <h3>📱 QR-Code Generator</h3>
+                <p>Erstelle einen QR-Code für Webseiten oder Text.</p>
+                
+                <div class="qrcode-controls">
+                    <input type="text" id="qrcode-text" placeholder="https://beispiel.de oder Text eingeben">
+                    <div class="color-picker-group">
+                        <div class="color-input">
+                            <label>Farbe:</label>
+                            <input type="color" id="qrcode-color" value="#000000">
+                        </div>
+                        <div class="color-input">
+                            <label>Hintergrund:</label>
+                            <input type="color" id="qrcode-bg" value="#ffffff">
+                        </div>
+                    </div>
+                    <button id="generate-qrcode-btn" class="action-button">
+                        <span class="icon">⚙️</span> Generieren
+                    </button>
+                </div>
+
+                <div id="qrcode-display" class="qrcode-display"></div>
+                
+                <button id="download-qrcode-btn" class="action-button hidden" style="margin-top: 20px;">
+                    <span class="icon">💾</span> QR-Code speichern
+                </button>
+            </div>
+        </div>
+
         <div id="loading" class="loading hidden">
             <div class="spinner"></div>
             <p>Verarbeite PDF...</p>
@@ -256,6 +290,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script>
         // Worker für pdf.js konfigurieren
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
