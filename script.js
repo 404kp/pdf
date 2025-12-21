@@ -84,9 +84,53 @@ toolButtons.forEach(button => {
 // Toolbar Toggle (Mobile)
 const toolbarToggle = document.getElementById('toolbar-toggle');
 const toolbarSidebar = document.getElementById('toolbar-sidebar');
+const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+const menuOverlay = document.getElementById('menu-overlay');
+const sidebarClose = document.getElementById('sidebar-close');
 
-toolbarToggle.addEventListener('click', () => {
-    toolbarSidebar.classList.toggle('collapsed');
+// Desktop Toggle (old behavior)
+if (toolbarToggle) {
+    toolbarToggle.addEventListener('click', () => {
+        toolbarSidebar.classList.toggle('collapsed');
+    });
+}
+
+// Mobile Menu Toggle
+function openMobileMenu() {
+    toolbarSidebar.classList.add('active');
+    menuOverlay.classList.add('active');
+    document.body.style.overflow = 'hidden'; // Prevent scrolling
+}
+
+function closeMobileMenu() {
+    toolbarSidebar.classList.remove('active');
+    menuOverlay.classList.remove('active');
+    document.body.style.overflow = ''; // Restore scrolling
+}
+
+// Mobile Menu Button
+if (mobileMenuToggle) {
+    mobileMenuToggle.addEventListener('click', openMobileMenu);
+}
+
+// Sidebar Close Button
+if (sidebarClose) {
+    sidebarClose.addEventListener('click', closeMobileMenu);
+}
+
+// Overlay Click
+if (menuOverlay) {
+    menuOverlay.addEventListener('click', closeMobileMenu);
+}
+
+// Close menu when a tool is selected (mobile)
+toolButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        // Close mobile menu if open
+        if (window.innerWidth <= 768 && toolbarSidebar.classList.contains('active')) {
+            closeMobileMenu();
+        }
+    });
 });
 
 // ========== MERGE FUNCTIONALITY ==========
