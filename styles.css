@@ -38,9 +38,11 @@ body {
 }
 
 .container {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 20px;
+    display: flex;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    min-height: calc(100vh - 200px);
 }
 
 header.main-header {
@@ -104,16 +106,152 @@ header.main-header {
     transform: scale(1.1);
 }
 
+/* Toolbar Sidebar */
+.toolbar-sidebar {
+    width: 280px;
+    background: var(--bg-card);
+    border-right: 1px solid var(--border);
+    padding: 20px 0;
+    position: sticky;
+    top: 120px;
+    height: calc(100vh - 140px);
+    overflow-y: auto;
+    transition: transform 0.3s ease, width 0.3s ease;
+    z-index: 100;
+    box-shadow: var(--shadow);
+}
+
+.toolbar-sidebar.collapsed {
+    transform: translateX(-280px);
+}
+
+.toolbar-toggle {
+    position: absolute;
+    top: 20px;
+    right: -40px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left: none;
+    border-radius: 0 8px 8px 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--primary);
+    font-size: 1.2rem;
+    transition: all 0.3s;
+}
+
+.toolbar-toggle:hover {
+    background: var(--bg-elevated);
+    color: var(--accent);
+}
+
+.toolbar-content {
+    padding: 0 10px;
+}
+
+.toolbar-category {
+    margin-bottom: 30px;
+}
+
+.category-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 15px;
+    margin-bottom: 10px;
+    color: var(--text-light);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+}
+
+.category-icon {
+    font-size: 1.2rem;
+}
+
+.category-header h3 {
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+.category-tools {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.tool-button {
+    background: none;
+    border: none;
+    padding: 12px 15px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    color: var(--text-light);
+    border-radius: 8px;
+    transition: all 0.3s;
+    font-size: 0.95rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.tool-button::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(180deg, var(--primary), var(--secondary));
+    transform: scaleY(0);
+    transition: transform 0.3s;
+}
+
+.tool-button:hover {
+    background: var(--bg-elevated);
+    color: var(--primary);
+    transform: translateX(5px);
+}
+
+.tool-button.active {
+    background: var(--bg-elevated);
+    color: var(--primary);
+    font-weight: 600;
+    box-shadow: inset 0 0 10px rgba(0, 240, 255, 0.1);
+}
+
+.tool-button.active::before {
+    transform: scaleY(1);
+}
+
+.tool-button .icon {
+    font-size: 1.3rem;
+    width: 24px;
+    text-align: center;
+}
+
+.tool-button .label {
+    flex: 1;
+}
+
+/* Main Content */
+.main-content {
+    flex: 1;
+    padding: 40px;
+    overflow-y: auto;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
 /* Tabs */
 .tabs {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 30px;
-    background: var(--bg-card);
-    padding: 8px;
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow);
+    display: none; /* Hidden - replaced by sidebar */
 }
 
 .tab-button {
@@ -197,6 +335,10 @@ header.main-header {
     position: relative;
     overflow: hidden;
     box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
 .upload-area::before {
@@ -1114,9 +1256,537 @@ footer a:hover {
     color: var(--text-light);
 }
 
+/* ========== EDITOR TAB STYLES (NEW) ========== */
+
+#editor-workspace {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Compact Toolbar */
+.annotation-toolbar-compact {
+    background: var(--bg-card);
+    border: 1px solid var(--border-glow);
+    border-radius: 12px;
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    box-shadow: var(--shadow);
+    flex-wrap: wrap;
+}
+
+.toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.group-label {
+    color: var(--text-light);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    white-space: nowrap;
+}
+
+.tool-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.annotation-tool-btn-compact {
+    background: var(--bg-elevated);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    width: 45px;
+    height: 45px;
+    cursor: pointer;
+    color: var(--text-light);
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.annotation-tool-btn-compact::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.annotation-tool-btn-compact:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 240, 255, 0.3);
+}
+
+.annotation-tool-btn-compact:hover::before {
+    opacity: 0.1;
+}
+
+.annotation-tool-btn-compact.active {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--bg-elevated);
+    box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+}
+
+.annotation-tool-btn-compact.active::before {
+    opacity: 0.2;
+}
+
+.annotation-tool-btn-compact .tool-icon {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.settings-inline {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.setting-compact {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.setting-compact label {
+    color: var(--text-light);
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+.setting-compact input[type="color"] {
+    width: 40px;
+    height: 40px;
+    border: 2px solid var(--border-glow);
+    border-radius: 6px;
+    cursor: pointer;
+    background: var(--bg-elevated);
+    padding: 0;
+}
+
+.setting-compact input[type="range"] {
+    width: 100px;
+}
+
+.value-display {
+    color: var(--primary);
+    font-weight: 700;
+    min-width: 25px;
+    text-align: right;
+}
+
+.unit {
+    color: var(--text-light);
+    font-size: 0.85rem;
+}
+
+.page-nav-compact {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.nav-btn {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-glow);
+    border-radius: 6px;
+    width: 35px;
+    height: 35px;
+    color: var(--primary);
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+.nav-btn:hover {
+    background: var(--bg-card);
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+    transform: scale(1.05);
+}
+
+.page-display {
+    color: var(--text);
+    font-weight: 600;
+    min-width: 60px;
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+/* Old toolbar styles - keep for compatibility but hidden */
+.annotation-toolbar {
+    display: none;
+}
+
+.toolbar-section h4 {
+    color: var(--text-light);
+    font-size: 0.9rem;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.annotation-tools {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.annotation-tool-btn {
+    background: var(--bg-elevated);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    padding: 15px 10px;
+    cursor: pointer;
+    color: var(--text-light);
+    transition: all 0.3s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    overflow: hidden;
+}
+
+.annotation-tool-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.annotation-tool-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 240, 255, 0.3);
+}
+
+.annotation-tool-btn:hover::before {
+    opacity: 0.1;
+}
+
+.annotation-tool-btn.active {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--bg-elevated);
+    box-shadow: 0 0 20px rgba(0, 240, 255, 0.4);
+}
+
+.annotation-tool-btn.active::before {
+    opacity: 0.2;
+}
+
+.tool-icon {
+    font-size: 1.8rem;
+    font-weight: bold;
+}
+
+.tool-label {
+    font-size: 0.85rem;
+}
+
+.annotation-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.setting-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.setting-item label {
+    color: var(--text-light);
+    font-size: 0.9rem;
+    min-width: 80px;
+}
+
+.setting-item input[type="color"] {
+    width: 50px;
+    height: 40px;
+    border: 2px solid var(--border-glow);
+    border-radius: 8px;
+    cursor: pointer;
+    background: var(--bg-elevated);
+}
+
+.setting-item input[type="range"] {
+    flex: 1;
+    min-width: 100px;
+}
+
+.setting-item span {
+    color: var(--primary);
+    font-weight: 600;
+    min-width: 30px;
+}
+
+.page-nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.page-nav button {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-glow);
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: var(--primary);
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.page-nav button:hover {
+    background: var(--bg-card);
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+}
+
+.page-nav span {
+    color: var(--text);
+    font-weight: 600;
+    min-width: 60px;
+    text-align: center;
+}
+
+.editor-preview-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border-glow);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: auto;
+    flex: 1;
+    min-height: 500px;
+}
+
+.annotation-canvas-wrapper {
+    position: relative;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    border-radius: 4px;
+    overflow: hidden;
+    max-width: 100%;
+}
+
+#editor-pdf-canvas {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
+.annotation-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    cursor: default;
+}
+
+.annotation-element {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    user-select: none;
+    font-family: 'Arial', sans-serif;
+    white-space: nowrap;
+    pointer-events: auto;
+    cursor: grab;
+    transition: all 0.2s;
+    padding: 2px 4px;
+    border-radius: 4px;
+}
+
+.annotation-element:hover {
+    box-shadow: 0 0 0 2px var(--primary);
+}
+
+.annotation-element.selected {
+    box-shadow: 0 0 0 3px var(--primary) !important;
+    background: rgba(0, 240, 255, 0.1);
+    border-radius: 4px;
+}
+
+.annotation-element:active {
+    cursor: grabbing;
+}
+
+.annotation-text {
+    cursor: text;
+}
+
+.annotation-text:hover {
+    background: rgba(0, 240, 255, 0.05);
+}
+
+.annotation-text.selected {
+    background: rgba(0, 240, 255, 0.2);
+}
+
+.annotation-edit-input {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.98);
+    border: 3px solid var(--primary);
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-family: 'Arial', sans-serif;
+    font-weight: bold;
+    outline: none;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+    color: #000;
+    min-width: 100px;
+}
+
+.annotation-text-input {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.95);
+    border: 2px solid var(--primary);
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-family: 'Arial', sans-serif;
+    font-weight: bold;
+    outline: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+}
+
+.editor-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.action-button.secondary {
+    background: var(--bg-elevated);
+    color: var(--text-light);
+    border: 1px solid var(--border-glow);
+}
+
+.action-button.secondary:hover {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: white;
+}
+
+.action-button.danger-outline {
+    background: transparent;
+    color: var(--danger);
+    border: 2px solid var(--danger);
+}
+
+.action-button.danger-outline:hover {
+    background: var(--danger);
+    color: white;
+}
+
+/* ========== RESPONSIVE DESIGN ========== */
+
+@media (max-width: 1024px) {
+    .annotation-toolbar-compact {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 15px;
+    }
+
+    .toolbar-group {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .tool-buttons,
+    .settings-inline,
+    .page-nav-compact {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .settings-inline {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .setting-compact {
+        width: 100%;
+    }
+
+    .setting-compact input[type="range"] {
+        flex: 1;
+        min-width: 150px;
+    }
+
+    .main-content {
+        padding: 20px;
+    }
+}
+
 @media (max-width: 768px) {
-    header h1 {
-        font-size: 2rem;
+    header.main-header {
+        padding: 20px;
+    }
+
+    .header-title {
+        font-size: 1.8rem;
+        letter-spacing: 2px;
+    }
+
+    .header-logo {
+        width: 60px;
+    }
+
+    .toolbar-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        z-index: 1000;
+        transform: translateX(-280px);
+    }
+
+    .toolbar-sidebar.collapsed {
+        transform: translateX(-280px);
+    }
+
+    .toolbar-sidebar:not(.collapsed) {
+        transform: translateX(0);
+        box-shadow: 4px 0 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .toolbar-toggle {
+        display: flex;
+    }
+
+    .main-content {
+        width: 100%;
+        padding: 15px;
     }
 
     .tabs {
@@ -1135,5 +1805,89 @@ footer a:hover {
     .tab-button.active {
         border-left-color: var(--primary);
         border-bottom-color: transparent;
+    }
+
+    .annotation-toolbar-compact {
+        padding: 12px 15px;
+    }
+
+    .tool-buttons {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .annotation-tool-btn-compact {
+        width: 42px;
+        height: 42px;
+    }
+
+    .editor-preview-container {
+        padding: 15px;
+        min-height: 400px;
+    }
+
+    .editor-actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .action-button {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .header-center {
+        gap: 10px;
+    }
+
+    .header-title {
+        font-size: 1.4rem;
+        letter-spacing: 1px;
+    }
+
+    .header-logo {
+        width: 50px;
+    }
+
+    .annotation-toolbar-compact {
+        padding: 10px;
+    }
+
+    .group-label {
+        font-size: 0.7rem;
+    }
+
+    .annotation-tool-btn-compact {
+        width: 40px;
+        height: 40px;
+    }
+
+    .annotation-tool-btn-compact .tool-icon {
+        font-size: 1.3rem;
+    }
+
+    .setting-compact label {
+        font-size: 0.8rem;
+    }
+
+    .nav-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 0.9rem;
+    }
+
+    .page-display {
+        font-size: 0.85rem;
+        min-width: 50px;
+    }
+
+    .editor-preview-container {
+        min-height: 300px;
+    }
+
+    .action-button {
+        padding: 12px 20px;
+        font-size: 0.95rem;
     }
 }

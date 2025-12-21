@@ -1,4 +1,4 @@
-const { PDFDocument } = PDFLib;
+const { PDFDocument, rgb, StandardFonts } = PDFLib;
 
 // State
 let mergeFiles = [];
@@ -15,11 +15,24 @@ let lastGeneratedPdf = {
     name: null
 };
 
+// Editor State (NEW)
+let editorFile = null;
+let editorPdfDoc = null;
+let editorPdfJsDoc = null;
+let editorCurrentPage = 1;
+let editorPageCount = 0;
+let editorActiveTool = null;
+let editorAnnotations = []; // Array of annotations: {type, page, x, y, text, color, size, strokeWidth}
+let editorScale = 1;
+let selectedAnnotationId = null;
+let editingAnnotationId = null;
+
 // DOM Elements
 const mergeTab = document.getElementById('merge-tab');
 const splitTab = document.getElementById('split-tab');
 const organizeTab = document.getElementById('organize-tab');
-const tabButtons = document.querySelectorAll('.tab-button');
+const editorTab = document.getElementById('editor-tab');
+const toolButtons = document.querySelectorAll('.tool-button');
 
 const mergeUploadArea = document.getElementById('merge-upload');
 const mergeFileInput = document.getElementById('merge-file-input');
@@ -53,12 +66,12 @@ const loading = document.getElementById('loading');
 const status = document.getElementById('status');
 
 // Tab Switching
-tabButtons.forEach(button => {
+toolButtons.forEach(button => {
     button.addEventListener('click', () => {
         const tabName = button.dataset.tab;
         
         // Switch tabs
-        tabButtons.forEach(btn => btn.classList.remove('active'));
+        toolButtons.forEach(btn => btn.classList.remove('active'));
         button.classList.add('active');
         
         document.querySelectorAll('.tab-content').forEach(content => {
@@ -66,6 +79,14 @@ tabButtons.forEach(button => {
         });
         document.getElementById(`${tabName}-tab`).classList.add('active');
     });
+});
+
+// Toolbar Toggle (Mobile)
+const toolbarToggle = document.getElementById('toolbar-toggle');
+const toolbarSidebar = document.getElementById('toolbar-sidebar');
+
+toolbarToggle.addEventListener('click', () => {
+    toolbarSidebar.classList.toggle('collapsed');
 });
 
 // ========== MERGE FUNCTIONALITY ==========
@@ -1205,3 +1226,575 @@ function showStatus(message, isError = false) {
         status.classList.add('hidden');
     }, 3000);
 }
+
+// ========== PDF EDITOR FUNCTIONALITY (NEW) ==========
+
+const editorUploadArea = document.getElementById('editor-upload');
+const editorFileInput = document.getElementById('editor-file-input');
+const editorWorkspace = document.getElementById('editor-workspace');
+const editorCanvas = document.getElementById('editor-pdf-canvas');
+const editorCanvasCtx = editorCanvas.getContext('2d');
+const annotationLayer = document.getElementById('annotation-layer');
+
+const annotationToolBtns = document.querySelectorAll('.annotation-tool-btn-compact');
+const annotationColor = document.getElementById('annotation-color');
+const annotationSize = document.getElementById('annotation-size');
+const annotationStroke = document.getElementById('annotation-stroke');
+const sizeValue = document.getElementById('size-value');
+const strokeValue = document.getElementById('stroke-value');
+
+const editorPrevPage = document.getElementById('editor-prev-page');
+const editorNextPage = document.getElementById('editor-next-page');
+const editorCurrentPageDisplay = document.getElementById('editor-current-page-display');
+
+const deletePdfBtn = document.getElementById('delete-pdf-btn');
+const clearAnnotationsBtn = document.getElementById('clear-annotations-btn');
+const saveAnnotatedPdfBtn = document.getElementById('save-annotated-pdf-btn');
+
+// Upload Handler
+editorUploadArea.addEventListener('click', () => editorFileInput.click());
+editorFileInput.addEventListener('change', (e) => handleEditorFile(e.target.files[0]));
+
+editorUploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    editorUploadArea.classList.add('dragover');
+});
+
+editorUploadArea.addEventListener('dragleave', () => {
+    editorUploadArea.classList.remove('dragover');
+});
+
+editorUploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    editorUploadArea.classList.remove('dragover');
+    handleEditorFile(e.dataTransfer.files[0]);
+});
+
+async function handleEditorFile(file) {
+    if (!file || file.type !== 'application/pdf') {
+        showStatus('Bitte eine PDF-Datei hochladen!', true);
+        return;
+    }
+    
+    showLoading(true);
+    
+    try {
+        editorFile = file;
+        const arrayBuffer = await file.arrayBuffer();
+        
+        // Load with pdf-lib for final export
+        editorPdfDoc = await PDFDocument.load(arrayBuffer);
+        editorPageCount = editorPdfDoc.getPageCount();
+        
+        // Load with pdf.js for rendering
+        editorPdfJsDoc = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+        
+        editorCurrentPage = 1;
+        editorAnnotations = [];
+        
+        editorUploadArea.style.display = 'none';
+        editorWorkspace.classList.remove('hidden');
+        
+        await renderEditorPage();
+        
+    } catch (error) {
+        console.error(error);
+        showStatus('Fehler beim Laden der PDF!', true);
+    } finally {
+        showLoading(false);
+    }
+}
+
+// Render current page
+async function renderEditorPage() {
+    const page = await editorPdfJsDoc.getPage(editorCurrentPage);
+    
+    const viewport = page.getViewport({ scale: 1.5 });
+    editorScale = 1.5;
+    
+    editorCanvas.width = viewport.width;
+    editorCanvas.height = viewport.height;
+    
+    await page.render({
+        canvasContext: editorCanvasCtx,
+        viewport: viewport
+    }).promise;
+    
+    editorCurrentPageDisplay.textContent = `${editorCurrentPage} / ${editorPageCount}`;
+    
+    // Re-render annotations for this page
+    renderAnnotations();
+}
+
+// Tool Selection
+annotationToolBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        annotationToolBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        editorActiveTool = btn.dataset.tool;
+        updateCursor();
+    });
+});
+
+// Settings Updates
+annotationSize.addEventListener('input', (e) => {
+    sizeValue.textContent = e.target.value;
+});
+
+annotationStroke.addEventListener('input', (e) => {
+    strokeValue.textContent = e.target.value;
+});
+
+// Page Navigation
+editorPrevPage.addEventListener('click', async () => {
+    if (editorCurrentPage > 1) {
+        editorCurrentPage--;
+        await renderEditorPage();
+    }
+});
+
+editorNextPage.addEventListener('click', async () => {
+    if (editorCurrentPage < editorPageCount) {
+        editorCurrentPage++;
+        await renderEditorPage();
+    }
+});
+
+// Canvas Click Handler
+annotationLayer.addEventListener('click', async (e) => {
+    if (!editorActiveTool) return;
+    
+    const rect = annotationLayer.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    if (editorActiveTool === 'text') {
+        // Create text input
+        const textInput = document.createElement('input');
+        textInput.type = 'text';
+        textInput.className = 'annotation-text-input';
+        textInput.style.left = x + 'px';
+        textInput.style.top = y + 'px';
+        textInput.style.fontSize = annotationSize.value + 'px';
+        textInput.style.color = annotationColor.value;
+        
+        annotationLayer.appendChild(textInput);
+        textInput.focus();
+        
+        textInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && textInput.value.trim()) {
+                addAnnotation('text', x, y, textInput.value);
+                textInput.remove();
+                renderAnnotations();
+            } else if (e.key === 'Escape') {
+                textInput.remove();
+            }
+        });
+        
+        textInput.addEventListener('blur', () => {
+            if (textInput.value.trim()) {
+                addAnnotation('text', x, y, textInput.value);
+                renderAnnotations();
+            }
+            textInput.remove();
+        });
+    } else {
+        // Add shape annotation
+        addAnnotation(editorActiveTool, x, y);
+        renderAnnotations();
+    }
+});
+
+function addAnnotation(type, x, y, text = '') {
+    editorAnnotations.push({
+        type: type,
+        page: editorCurrentPage,
+        x: x,
+        y: y,
+        text: text,
+        color: annotationColor.value,
+        size: parseInt(annotationSize.value),
+        strokeWidth: parseInt(annotationStroke.value)
+    });
+}
+
+function renderAnnotations() {
+    // Clear existing annotations on layer
+    const existingAnnotations = annotationLayer.querySelectorAll('.annotation-element');
+    existingAnnotations.forEach(el => el.remove());
+    
+    // Render annotations for current page
+    const pageAnnotations = editorAnnotations.filter(a => a.page === editorCurrentPage);
+    
+    pageAnnotations.forEach((annotation, index) => {
+        const annotationId = editorAnnotations.indexOf(annotation);
+        
+        if (annotation.type === 'text') {
+            // Text element - editable
+            const element = document.createElement('div');
+            element.className = 'annotation-element annotation-text';
+            element.style.left = annotation.x + 'px';
+            element.style.top = annotation.y + 'px';
+            element.style.color = annotation.color;
+            element.style.fontSize = annotation.size + 'px';
+            element.textContent = annotation.text;
+            element.style.fontWeight = 'bold';
+            
+            element.dataset.annotationId = annotationId;
+            element.draggable = true;
+            
+            // Click to select/edit
+            element.addEventListener('click', (e) => {
+                e.stopPropagation();
+                selectAndEditAnnotation(annotationId);
+            });
+            
+            // Drag events
+            element.addEventListener('dragstart', handleAnnotationDragStart);
+            element.addEventListener('dragend', handleAnnotationDragEnd);
+            
+            annotationLayer.appendChild(element);
+        } else {
+            // Symbol elements (cross, check, rectangle)
+            const element = document.createElement('div');
+            element.className = 'annotation-element annotation-symbol';
+            element.style.left = annotation.x + 'px';
+            element.style.top = annotation.y + 'px';
+            element.style.color = annotation.color;
+            element.style.fontSize = annotation.size + 'px';
+            
+            if (annotation.type === 'cross') {
+                element.textContent = '✕';
+            } else if (annotation.type === 'check') {
+                element.textContent = '✓';
+            } else if (annotation.type === 'rectangle') {
+                element.style.border = `${annotation.strokeWidth}px solid ${annotation.color}`;
+                element.style.width = annotation.size + 'px';
+                element.style.height = annotation.size + 'px';
+                element.style.backgroundColor = 'transparent';
+            }
+            
+            element.dataset.annotationId = annotationId;
+            element.draggable = true;
+            
+            // Click to select
+            element.addEventListener('click', (e) => {
+                e.stopPropagation();
+                selectAnnotation(annotationId);
+            });
+            
+            // Drag events
+            element.addEventListener('dragstart', handleAnnotationDragStart);
+            element.addEventListener('dragend', handleAnnotationDragEnd);
+            
+            annotationLayer.appendChild(element);
+        }
+    });
+    
+    // Update visual selection
+    updateSelectedAnnotationUI();
+}
+
+function selectAnnotation(annotationId) {
+    selectedAnnotationId = annotationId;
+    editingAnnotationId = null;
+    updateSelectedAnnotationUI();
+}
+
+function selectAndEditAnnotation(annotationId) {
+    const annotation = editorAnnotations[annotationId];
+    
+    if (!annotation) return;
+    
+    // For text elements, enter edit mode
+    if (annotation.type === 'text') {
+        editingAnnotationId = annotationId;
+        enterEditMode(annotationId);
+    } else {
+        // For symbols, just select
+        selectAnnotation(annotationId);
+    }
+}
+
+function enterEditMode(annotationId) {
+    const annotation = editorAnnotations[annotationId];
+    if (!annotation || annotation.type !== 'text') return;
+    
+    const element = document.querySelector(`[data-annotation-id="${annotationId}"]`);
+    if (!element) return;
+    
+    // Create editable input
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'annotation-edit-input';
+    input.value = annotation.text;
+    input.style.left = annotation.x + 'px';
+    input.style.top = annotation.y + 'px';
+    input.style.fontSize = annotation.size + 'px';
+    input.style.color = annotation.color;
+    
+    annotationLayer.appendChild(input);
+    input.focus();
+    input.select(); // Select all text
+    
+    // Save on blur or Enter
+    const saveEdit = () => {
+        const newText = input.value.trim();
+        if (newText) {
+            annotation.text = newText;
+        } else {
+            // If empty, delete the annotation
+            editorAnnotations.splice(annotationId, 1);
+        }
+        editingAnnotationId = null;
+        input.remove();
+        renderAnnotations();
+    };
+    
+    input.addEventListener('blur', saveEdit);
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            saveEdit();
+        } else if (e.key === 'Escape') {
+            editingAnnotationId = null;
+            input.remove();
+            renderAnnotations();
+        }
+    });
+}
+
+function updateSelectedAnnotationUI() {
+    // Remove all selected states
+    document.querySelectorAll('.annotation-element.selected').forEach(el => {
+        el.classList.remove('selected');
+    });
+    
+    // Add selected state
+    if (selectedAnnotationId !== null) {
+        const selectedElement = document.querySelector(`[data-annotation-id="${selectedAnnotationId}"]`);
+        if (selectedElement) {
+            selectedElement.classList.add('selected');
+        }
+    }
+}
+
+// Global Delete key handler
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Delete' && selectedAnnotationId !== null && editingAnnotationId === null) {
+        e.preventDefault();
+        deleteAnnotation(selectedAnnotationId);
+    }
+});
+
+function deleteAnnotation(annotationId) {
+    if (confirm('Möchten Sie diese Anmerkung wirklich löschen?')) {
+        editorAnnotations.splice(annotationId, 1);
+        selectedAnnotationId = null;
+        editingAnnotationId = null;
+        renderAnnotations();
+        showStatus('Anmerkung gelöscht');
+    }
+}
+
+// Click on annotation layer background to deselect
+annotationLayer.addEventListener('click', () => {
+    if (editingAnnotationId === null) {
+        selectedAnnotationId = null;
+        updateSelectedAnnotationUI();
+    }
+});
+
+// Drag and Drop for Annotations
+let draggedAnnotation = null;
+let dragOffset = { x: 0, y: 0 };
+
+function handleAnnotationDragStart(e) {
+    draggedAnnotation = e.target;
+    draggedAnnotation.style.opacity = '0.5';
+    
+    // Calculate offset from mouse to element center
+    const rect = draggedAnnotation.getBoundingClientRect();
+    const layerRect = annotationLayer.getBoundingClientRect();
+    
+    dragOffset.x = e.clientX - rect.left - rect.width / 2;
+    dragOffset.y = e.clientY - rect.top - rect.height / 2;
+    
+    e.dataTransfer.effectAllowed = 'move';
+}
+
+function handleAnnotationDragEnd(e) {
+    if (!draggedAnnotation) return;
+    
+    draggedAnnotation.style.opacity = '1';
+    
+    // Get new position relative to annotation layer
+    const layerRect = annotationLayer.getBoundingClientRect();
+    const newX = e.clientX - layerRect.left - dragOffset.x;
+    const newY = e.clientY - layerRect.top - dragOffset.y;
+    
+    // Update annotation in array
+    const annotationId = parseInt(draggedAnnotation.dataset.annotationId);
+    if (editorAnnotations[annotationId]) {
+        editorAnnotations[annotationId].x = newX;
+        editorAnnotations[annotationId].y = newY;
+    }
+    
+    // Re-render to update position
+    renderAnnotations();
+    
+    draggedAnnotation = null;
+}
+
+// Allow drop on annotation layer
+annotationLayer.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+});
+
+function updateCursor() {
+    if (editorActiveTool) {
+        annotationLayer.style.cursor = 'crosshair';
+    } else {
+        annotationLayer.style.cursor = 'default';
+    }
+}
+
+// Clear All Annotations
+clearAnnotationsBtn.addEventListener('click', () => {
+    if (confirm('Möchten Sie wirklich alle Anmerkungen löschen?')) {
+        editorAnnotations = [];
+        renderAnnotations();
+        showStatus('Alle Anmerkungen gelöscht');
+    }
+});
+
+// Delete PDF
+deletePdfBtn.addEventListener('click', () => {
+    // Check if there are unsaved annotations
+    if (editorAnnotations.length > 0) {
+        if (!confirm('Sie haben ungespeicherte Anmerkungen. Möchten Sie wirklich die PDF löschen?')) {
+            return;
+        }
+    } else {
+        if (!confirm('Möchten Sie die PDF wirklich löschen?')) {
+            return;
+        }
+    }
+    
+    // Reset everything
+    editorFile = null;
+    editorPdfDoc = null;
+    editorPdfJsDoc = null;
+    editorCurrentPage = 1;
+    editorPageCount = 0;
+    editorAnnotations = [];
+    editorActiveTool = null;
+    
+    // Reset UI
+    editorWorkspace.classList.add('hidden');
+    editorUploadArea.style.display = 'flex';
+    editorFileInput.value = '';
+    
+    // Clear active tool selection
+    annotationToolBtns.forEach(btn => btn.classList.remove('active'));
+    
+    showStatus('PDF gelöscht');
+});
+
+// Save Annotated PDF
+saveAnnotatedPdfBtn.addEventListener('click', async () => {
+    if (editorAnnotations.length === 0) {
+        showStatus('Keine Anmerkungen zum Speichern!', true);
+        return;
+    }
+    
+    showLoading(true);
+    
+    try {
+        // Load font
+        const font = await editorPdfDoc.embedFont(StandardFonts.Helvetica);
+        
+        // Process each page
+        for (let pageNum = 1; pageNum <= editorPageCount; pageNum++) {
+            const page = editorPdfDoc.getPage(pageNum - 1);
+            const { width: pdfWidth, height: pdfHeight } = page.getSize();
+            
+            // Get annotations for this page
+            const pageAnnotations = editorAnnotations.filter(a => a.page === pageNum);
+            
+            // Calculate scale factors
+            const scaleX = pdfWidth / editorCanvas.width;
+            const scaleY = pdfHeight / editorCanvas.height;
+            
+            for (const annotation of pageAnnotations) {
+                // Convert browser coordinates to PDF coordinates
+                // Browser: top-left origin, PDF: bottom-left origin
+                const pdfX = annotation.x * scaleX;
+                const pdfY = pdfHeight - (annotation.y * scaleY);
+                
+                // Parse color
+                const colorHex = annotation.color.replace('#', '');
+                const r = parseInt(colorHex.substr(0, 2), 16) / 255;
+                const g = parseInt(colorHex.substr(2, 2), 16) / 255;
+                const b = parseInt(colorHex.substr(4, 2), 16) / 255;
+                const color = rgb(r, g, b);
+                
+                const scaledSize = annotation.size * scaleX;
+                
+                if (annotation.type === 'text') {
+                    page.drawText(annotation.text, {
+                        x: pdfX,
+                        y: pdfY,
+                        size: scaledSize,
+                        font: font,
+                        color: color
+                    });
+                } else if (annotation.type === 'cross') {
+                    // Draw X with two lines
+                    const offset = scaledSize / 2;
+                    page.drawLine({
+                        start: { x: pdfX - offset, y: pdfY - offset },
+                        end: { x: pdfX + offset, y: pdfY + offset },
+                        thickness: annotation.strokeWidth * scaleX,
+                        color: color
+                    });
+                    page.drawLine({
+                        start: { x: pdfX - offset, y: pdfY + offset },
+                        end: { x: pdfX + offset, y: pdfY - offset },
+                        thickness: annotation.strokeWidth * scaleX,
+                        color: color
+                    });
+                } else if (annotation.type === 'check') {
+                    // Draw checkmark
+                    page.drawText('✓', {
+                        x: pdfX,
+                        y: pdfY,
+                        size: scaledSize,
+                        font: font,
+                        color: color
+                    });
+                } else if (annotation.type === 'rectangle') {
+                    page.drawRectangle({
+                        x: pdfX,
+                        y: pdfY - scaledSize,
+                        width: scaledSize,
+                        height: scaledSize,
+                        borderColor: color,
+                        borderWidth: annotation.strokeWidth * scaleX
+                    });
+                }
+            }
+        }
+        
+        const pdfBytes = await editorPdfDoc.save();
+        downloadPDF(pdfBytes, `${editorFile.name.replace('.pdf', '')}_annotated.pdf`);
+        
+        showStatus('PDF mit Anmerkungen erfolgreich gespeichert!');
+        
+    } catch (error) {
+        console.error(error);
+        showStatus('Fehler beim Speichern der PDF!', true);
+    } finally {
+        showLoading(false);
+    }
+});

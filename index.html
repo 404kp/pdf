@@ -21,24 +21,71 @@
     </header>
 
     <div class="container">
-        <!-- Tab Navigation -->
-        <div class="tabs">
-            <button class="tab-button active" data-tab="merge">
-                <span class="icon">🔗</span> PDFs Zusammenführen
+        <!-- Modern Toolbar Sidebar -->
+        <aside class="toolbar-sidebar" id="toolbar-sidebar">
+            <button class="toolbar-toggle" id="toolbar-toggle">
+                <span class="toggle-icon">☰</span>
             </button>
-            <button class="tab-button" data-tab="split">
-                <span class="icon">✂️</span> PDF Teilen/Extrahieren
-            </button>
-            <button class="tab-button" data-tab="organize">
-                <span class="icon">🔃</span> PDF Organisieren
-            </button>
-            <button class="tab-button" data-tab="misc">
-                <span class="icon">🛠️</span> Sonstiges
-            </button>
-            <button class="tab-button" data-tab="qrcode">
-                <span class="icon">📱</span> QR-Code
-            </button>
-        </div>
+
+            <div class="toolbar-content">
+                <!-- Kategorie: Datei -->
+                <div class="toolbar-category">
+                    <div class="category-header">
+                        <span class="category-icon">📂</span>
+                        <h3>Datei</h3>
+                    </div>
+                    <div class="category-tools">
+                        <button class="tool-button active" data-tab="merge">
+                            <span class="icon">🔗</span>
+                            <span class="label">Zusammenführen</span>
+                        </button>
+                        <button class="tool-button" data-tab="split">
+                            <span class="icon">✂️</span>
+                            <span class="label">Teilen</span>
+                        </button>
+                        <button class="tool-button" data-tab="organize">
+                            <span class="icon">🔃</span>
+                            <span class="label">Organisieren</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Kategorie: Anmerkungen -->
+                <div class="toolbar-category">
+                    <div class="category-header">
+                        <span class="category-icon">✏️</span>
+                        <h3>Anmerkungen</h3>
+                    </div>
+                    <div class="category-tools">
+                        <button class="tool-button" data-tab="editor">
+                            <span class="icon">📝</span>
+                            <span class="label">PDF Editor</span>
+                        </button>
+                        <button class="tool-button" data-tab="misc">
+                            <span class="icon">🛠️</span>
+                            <span class="label">Sonstiges</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Kategorie: Tools -->
+                <div class="toolbar-category">
+                    <div class="category-header">
+                        <span class="category-icon">⚙️</span>
+                        <h3>Tools</h3>
+                    </div>
+                    <div class="category-tools">
+                        <button class="tool-button" data-tab="qrcode">
+                            <span class="icon">📱</span>
+                            <span class="label">QR-Code</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
 
         <!-- Merge Tab -->
         <div id="merge-tab" class="tab-content active">
@@ -93,6 +140,95 @@
                         <input type="number" id="extract-to" min="1" placeholder="z.B. 10">
                         <button id="extract-button" class="action-button">Seiten Extrahieren</button>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Editor Tab (NEW) -->
+        <div id="editor-tab" class="tab-content">
+            <div class="upload-area" id="editor-upload">
+                <div class="upload-icon">📤</div>
+                <h3>PDF zum Bearbeiten hochladen</h3>
+                <p>Klicken oder Datei hierher ziehen</p>
+                <button class="mini-btn use-last-pdf-btn hidden" style="margin-top: 15px; background: var(--secondary); color: white;">
+                    📂 Letzte bearbeitete PDF verwenden
+                </button>
+                <input type="file" id="editor-file-input" accept=".pdf" hidden>
+            </div>
+
+            <div id="editor-workspace" class="hidden">
+                <!-- Compact Annotation Toolbar -->
+                <div class="annotation-toolbar-compact">
+                    <!-- Werkzeuge -->
+                    <div class="toolbar-group">
+                        <span class="group-label">WERKZEUGE</span>
+                        <div class="tool-buttons">
+                            <button class="annotation-tool-btn-compact" data-tool="text" title="Text">
+                                <span class="tool-icon">T</span>
+                            </button>
+                            <button class="annotation-tool-btn-compact" data-tool="cross" title="Kreuz">
+                                <span class="tool-icon">✕</span>
+                            </button>
+                            <button class="annotation-tool-btn-compact" data-tool="check" title="Haken">
+                                <span class="tool-icon">✓</span>
+                            </button>
+                            <button class="annotation-tool-btn-compact" data-tool="rectangle" title="Rechteck">
+                                <span class="tool-icon">▢</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Einstellungen -->
+                    <div class="toolbar-group">
+                        <span class="group-label">EINSTELLUNGEN</span>
+                        <div class="settings-inline">
+                            <div class="setting-compact">
+                                <label>Farbe:</label>
+                                <input type="color" id="annotation-color" value="#ff0000">
+                            </div>
+                            <div class="setting-compact">
+                                <label>Größe:</label>
+                                <input type="range" id="annotation-size" min="10" max="100" value="24">
+                                <span id="size-value" class="value-display">24</span><span class="unit">px</span>
+                            </div>
+                            <div class="setting-compact">
+                                <label>Linienstärke:</label>
+                                <input type="range" id="annotation-stroke" min="1" max="10" value="2">
+                                <span id="stroke-value" class="value-display">2</span><span class="unit">px</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Navigation -->
+                    <div class="toolbar-group">
+                        <span class="group-label">NAVIGATION</span>
+                        <div class="page-nav-compact">
+                            <button id="editor-prev-page" class="nav-btn">◀</button>
+                            <span id="editor-current-page-display" class="page-display">1 / 1</span>
+                            <button id="editor-next-page" class="nav-btn">▶</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PDF Preview with Annotations -->
+                <div class="editor-preview-container">
+                    <div class="annotation-canvas-wrapper" id="annotation-canvas-wrapper">
+                        <canvas id="editor-pdf-canvas"></canvas>
+                        <div class="annotation-layer" id="annotation-layer"></div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="editor-actions">
+                    <button id="delete-pdf-btn" class="action-button danger-outline">
+                        <span class="icon">🗑️</span> PDF löschen
+                    </button>
+                    <button id="clear-annotations-btn" class="action-button secondary">
+                        <span class="icon">✖️</span> Anmerkungen löschen
+                    </button>
+                    <button id="save-annotated-pdf-btn" class="action-button">
+                        <span class="icon">💾</span> Speichern
+                    </button>
                 </div>
             </div>
         </div>
@@ -294,6 +430,7 @@
         <footer>
             <p>&copy; 2025 <a href="https://github.com/404kp" target="_blank">404kp</a>. All rights reserved.</p>
         </footer>
+        </main>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
